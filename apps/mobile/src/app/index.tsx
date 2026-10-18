@@ -13,8 +13,8 @@ const byAmount = (totals: Record<string, number>) => Object.entries(totals).sort
 export default function Dashboard() {
   const theme = useTheme();
   const [month, setMonth] = useState(currentMonth);
-  const { transactions, error, lastImport } = useMonthTransactions(month);
-  const summary = useMemo(() => summarizeMonth(transactions, month), [transactions, month]);
+  const { transactions, error, lastImport, cashMode } = useMonthTransactions(month);
+  const summary = useMemo(() => summarizeMonth(transactions, month, { cashMode }), [transactions, month, cashMode]);
   const isCurrentMonth = month === currentMonth();
   const cashEntries = byAmount(summary.cashBreakdown);
 

@@ -1,9 +1,27 @@
-import { isOwnerName } from "@expense/core";
+import { isOwnerName, type CashMode } from "@expense/core";
 import type { SQLiteDatabase } from "expo-sqlite";
 import { z } from "zod";
 
 const OWNER_NAMES_KEY = "owner_names";
 const OwnerNamesSchema = z.array(z.string());
+
+const CASH_MODE_KEY = "cash_mode";
+const CashModeSchema = z.enum(["WITHDRAWALS", "ENTRIES"]);
+/** Cash expenses the user logs count as spending; ATM withdrawals just move money into the wallet. */
+export const DEFAULT_CASH_MODE: CashMode = "ENTRIES";
+
+export async function getCashMode(db: SQLiteDatabase): Promise<CashMode> {
+  const row = await db.getFirstAsync<{ value: string }>("SELECT value FROM settings WHERE key = ?", [CASH_MODE_KEY]);
+  const parsed = CashModeSchema.safeParse(row?.value);
+  return parsed.success ? parsed.data : DEFAULT_CASH_MODE;
+}
+
+export async function saveCashMode(db: SQLiteDatabase, mode: CashMode): Promise<void> {
+  await db.runAsync(
+    "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+    [CASH_MODE_KEY, mode],
+  );
+}
 
 export async function getOwnerNames(db: SQLiteDatabase): Promise<string[]> {
   const row = await db.getFirstAsync<{ value: string }>("SELECT value FROM settings WHERE key = ?", [OWNER_NAMES_KEY]);

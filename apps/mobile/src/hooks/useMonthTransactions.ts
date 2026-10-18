@@ -1,8 +1,9 @@
-import type { Transaction } from "@expense/core";
+import type { CashMode, Transaction } from "@expense/core";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
 import { AppState } from "react-native";
+import { DEFAULT_CASH_MODE, getCashMode } from "@/db/settings";
 import { listTransactions } from "@/db/transactions";
 import { importSmsInbox, type InboxImportResult } from "@/ingest/inbox";
 
@@ -15,11 +16,13 @@ export function useMonthTransactions(month: string): {
   error: string | null;
   /** The last background import that found something, for a short note on screen. */
   lastImport: InboxImportResult | null;
+  cashMode: CashMode;
 } {
   const db = useSQLiteContext();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [lastImport, setLastImport] = useState<InboxImportResult | null>(null);
+  const [cashMode, setCashMode] = useState<CashMode>(DEFAULT_CASH_MODE);
 
   useFocusEffect(
     useCallback(() => {
@@ -28,11 +31,12 @@ export function useMonthTransactions(month: string): {
         importSmsInbox(db)
           .then((imported) => {
             if (active && imported.saved + imported.duplicates > 0) setLastImport(imported);
-            return listTransactions(db, month);
+            return Promise.all([listTransactions(db, month), getCashMode(db)]);
           })
-          .then((rows) => {
+          .then(([rows, mode]) => {
             if (!active) return;
             setTransactions(rows);
+            setCashMode(mode);
             setError(null);
           })
           .catch((e: unknown) => {
@@ -50,5 +54,5 @@ export function useMonthTransactions(month: string): {
     }, [db, month]),
   );
 
-  return { transactions, error, lastImport };
+  return { transactions, error, lastImport, cashMode };
 }

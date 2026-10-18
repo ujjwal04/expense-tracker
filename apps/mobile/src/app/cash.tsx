@@ -1,9 +1,10 @@
-import { istDate, parseAmountToPaise } from "@expense/core";
+import { istDate, parseAmountToPaise, type CashMode } from "@expense/core";
 import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/ui";
+import { DEFAULT_CASH_MODE, getCashMode } from "@/db/settings";
 import { insertTransaction } from "@/db/transactions";
 import { useTheme } from "@/theme";
 
@@ -15,6 +16,11 @@ export default function CashExpense() {
   const [category, setCategory] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [cashMode, setCashMode] = useState<CashMode>(DEFAULT_CASH_MODE);
+
+  useEffect(() => {
+    getCashMode(db).then(setCashMode).catch(() => undefined);
+  }, [db]);
 
   const inputStyle = [styles.input, { color: theme.text, backgroundColor: theme.card, borderColor: theme.border }];
 
@@ -84,8 +90,9 @@ export default function CashExpense() {
 
         {error ? <Text style={[styles.message, { color: theme.negative }]}>{error}</Text> : null}
         <Text style={[styles.message, { color: theme.muted }]}>
-          ATM withdrawals already count as spending, so cash expenses show where that cash went without being added to
-          the total again.
+          {cashMode === "ENTRIES"
+            ? "Counts toward this month's total. To count ATM withdrawals instead, change it in Settings → Cash."
+            : "Shows where withdrawn cash went. ATM withdrawals already count as spending, so this isn't added again."}
         </Text>
 
         <Button title={saving ? "Saving…" : "Save"} onPress={save} disabled={saving} />
