@@ -1,7 +1,7 @@
 import { formatInr } from "@expense/core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, StyleSheet, Text, TextInput, View } from "react-native";
 import { z } from "zod";
 import { Button } from "@/components/ui";
@@ -24,29 +24,37 @@ export default function AddFromSms() {
   const theme = useTheme();
   const db = useSQLiteContext();
   const { sms } = useLocalSearchParams<{ sms?: string }>();
-  const [state, setState] = useState<ScreenState>(sms === undefined ? { status: "paste" } : { status: "working" });
+  const [state, setState] = useState<ScreenState>(() => initialState(sms));
   const [pasted, setPasted] = useState("");
   const handled = useRef<string | null>(null);
 
-  function ingest(text: unknown) {
-    const body = SmsTextSchema.safeParse(text);
+  // Stores the message and shows the outcome; state only changes once the import finishes.
+  const save = useCallback(
+    (body: string) => {
+      ingestSms(db, body)
+        .then(setState)
+        .catch((e: unknown) => setState({ status: "error", message: e instanceof Error ? e.message : String(e) }));
+    },
+    [db],
+  );
+
+  useEffect(() => {
+    const body = SmsTextSchema.safeParse(sms);
+    // Effects can run twice in development; never store the same message twice.
+    if (!body.success || handled.current === body.data) return;
+    handled.current = body.data;
+    save(body.data);
+  }, [sms, save]);
+
+  function importPasted() {
+    const body = SmsTextSchema.safeParse(pasted);
     if (!body.success) {
       setState({ status: "invalid" });
       return;
     }
-    // Effects can run twice in development; never store the same message twice.
-    if (handled.current === body.data) return;
-    handled.current = body.data;
     setState({ status: "working" });
-    ingestSms(db, body.data)
-      .then(setState)
-      .catch((e: unknown) => setState({ status: "error", message: e instanceof Error ? e.message : String(e) }));
+    save(body.data);
   }
-
-  useEffect(() => {
-    // Runs once per incoming message; ingest() is recreated each render but only reads current state.
-    if (sms !== undefined) ingest(sms);
-  }, [sms]);
 
   if (state.status === "paste") {
     return (
@@ -63,7 +71,7 @@ export default function AddFromSms() {
           multiline
           autoFocus
         />
-        <Button title="Import" onPress={() => ingest(pasted)} disabled={!pasted.trim()} />
+        <Button title="Import" onPress={importPasted} disabled={!pasted.trim()} />
       </KeyboardAvoidingView>
     );
   }
@@ -77,6 +85,11 @@ export default function AddFromSms() {
       {state.status !== "working" ? <Button title="Done" onPress={() => router.dismissTo("/")} /> : null}
     </View>
   );
+}
+
+function initialState(sms: string | undefined): ScreenState {
+  if (sms === undefined) return { status: "paste" };
+  return SmsTextSchema.safeParse(sms).success ? { status: "working" } : { status: "invalid" };
 }
 
 function describe(state: Exclude<ScreenState, { status: "paste" }>): { title: string; detail?: string } {

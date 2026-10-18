@@ -34,7 +34,7 @@ export default function Dashboard() {
       <Text style={[styles.caption, { color: theme.muted }]}>
         spent{summary.refundsPaise > 0 ? ` after ${formatInr(summary.refundsPaise)} in refunds` : ""}
       </Text>
-      {error ? <Text style={[styles.caption, { color: theme.negative }]}>Couldn't load: {error}</Text> : null}
+      {error ? <Text style={[styles.caption, { color: theme.negative }]}>Couldn&apos;t load: {error}</Text> : null}
 
       <Section title="Fixed vs variable">
         <AmountRow label="Fixed" hint="EMIs, subscriptions, autopay" paise={summary.fixedPaise} />
