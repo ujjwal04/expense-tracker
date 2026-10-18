@@ -32,4 +32,19 @@ export const IDFC_CARD_PURCHASE: SmsFixture = {
   },
 };
 
-export const IDFC_FIXTURES: readonly SmsFixture[] = [IDFC_UPI_PAYMENT, IDFC_CARD_PURCHASE];
+export const IDFC_CARD_BILL_PAID: SmsFixture = {
+  name: "IDFC credit card bill payment received",
+  body: "Thank you for payment of INR 5,000.00 towards your FIRST Select Credit Card XX9876 on 12 Aug 2026. IDFC FIRST Bank",
+  expected: {
+    amountPaise: 500000,
+    direction: "CREDIT",
+    date: "2026-08-12",
+    merchant: null,
+    accountLast4: "9876",
+    accountType: "CREDIT_CARD",
+    channel: "OTHER",
+    reference: null,
+  },
+};
+
+export const IDFC_FIXTURES: readonly SmsFixture[] = [IDFC_UPI_PAYMENT, IDFC_CARD_PURCHASE, IDFC_CARD_BILL_PAID];
