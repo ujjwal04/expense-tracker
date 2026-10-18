@@ -77,6 +77,7 @@ export default function Dashboard() {
 
       <View style={styles.actions}>
         <Button title="All transactions" variant="secondary" onPress={() => router.push({ pathname: "/transactions", params: { month } })} />
+        <Button title="Paste bank SMS" variant="secondary" onPress={() => router.push("/add")} />
         <Button title="Add cash expense" onPress={() => router.push("/cash")} />
       </View>
     </ScrollView>

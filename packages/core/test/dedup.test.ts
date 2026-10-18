@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { findDuplicate, isLikelyDuplicate, merchantSimilarity, type DedupCandidate } from "../src";
 
-const fromSms: DedupCandidate = { amountPaise: 25000, date: "2026-10-14", accountLast4: "4321", merchant: "swiggy@icici" };
+const fromSms: DedupCandidate = {
+  amountPaise: 25000,
+  direction: "DEBIT",
+  date: "2026-10-14",
+  accountLast4: "4321",
+  merchant: "swiggy@icici",
+};
 const fromStatement: DedupCandidate = {
   amountPaise: 25000,
+  direction: "DEBIT",
   date: "2026-10-15",
   accountLast4: "4321",
   merchant: "UPI/628712345678/SWIGGY/Bundl Technologies",
@@ -16,6 +23,12 @@ describe("isLikelyDuplicate", () => {
 
   it("rejects a different amount", () => {
     expect(isLikelyDuplicate(fromSms, { ...fromStatement, amountPaise: 25100 })).toBe(false);
+  });
+
+  it("never matches money going out with money coming in", () => {
+    // ₹1 sent out of an account, then ₹1 received back into it the same day.
+    const sent: DedupCandidate = { amountPaise: 100, direction: "DEBIT", date: "2026-10-18", accountLast4: "4321", merchant: null };
+    expect(isLikelyDuplicate(sent, { ...sent, direction: "CREDIT" })).toBe(false);
   });
 
   it("rejects dates outside the window", () => {

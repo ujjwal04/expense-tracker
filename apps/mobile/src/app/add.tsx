@@ -2,27 +2,34 @@ import { formatInr } from "@expense/core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, StyleSheet, Text, TextInput, View } from "react-native";
 import { z } from "zod";
 import { Button } from "@/components/ui";
 import { KIND_LABELS } from "@/format";
 import { ingestSms, type SmsIngestOutcome } from "@/ingest/sms";
 import { useTheme } from "@/theme";
 
-// Opened by the iOS Shortcut: expensetracker://add?sms=<url-encoded message>
-const SmsParamSchema = z.string().trim().min(1).max(2000);
+// Opened by the iOS Shortcut (expensetracker://add?sms=<url-encoded message>),
+// or from the dashboard with no message, to paste one that the Shortcut missed.
+const SmsTextSchema = z.string().trim().min(1).max(2000);
 
-type ScreenState = { status: "working" } | { status: "invalid" } | { status: "error"; message: string } | SmsIngestOutcome;
+type ScreenState =
+  | { status: "paste" }
+  | { status: "working" }
+  | { status: "invalid" }
+  | { status: "error"; message: string }
+  | SmsIngestOutcome;
 
 export default function AddFromSms() {
   const theme = useTheme();
   const db = useSQLiteContext();
   const { sms } = useLocalSearchParams<{ sms?: string }>();
-  const [state, setState] = useState<ScreenState>({ status: "working" });
+  const [state, setState] = useState<ScreenState>(sms === undefined ? { status: "paste" } : { status: "working" });
+  const [pasted, setPasted] = useState("");
   const handled = useRef<string | null>(null);
 
-  useEffect(() => {
-    const body = SmsParamSchema.safeParse(sms);
+  function ingest(text: unknown) {
+    const body = SmsTextSchema.safeParse(text);
     if (!body.success) {
       setState({ status: "invalid" });
       return;
@@ -30,10 +37,36 @@ export default function AddFromSms() {
     // Effects can run twice in development; never store the same message twice.
     if (handled.current === body.data) return;
     handled.current = body.data;
+    setState({ status: "working" });
     ingestSms(db, body.data)
       .then(setState)
       .catch((e: unknown) => setState({ status: "error", message: e instanceof Error ? e.message : String(e) }));
-  }, [db, sms]);
+  }
+
+  useEffect(() => {
+    // Runs once per incoming message; ingest() is recreated each render but only reads current state.
+    if (sms !== undefined) ingest(sms);
+  }, [sms]);
+
+  if (state.status === "paste") {
+    return (
+      <KeyboardAvoidingView behavior="padding" style={styles.paste}>
+        <Text style={[styles.detail, { color: theme.muted }]}>
+          Copy a bank SMS from Messages (long-press it → Copy) and paste it here.
+        </Text>
+        <TextInput
+          style={[styles.input, { color: theme.text, backgroundColor: theme.card, borderColor: theme.border }]}
+          value={pasted}
+          onChangeText={setPasted}
+          placeholder="Paste the message"
+          placeholderTextColor={theme.muted}
+          multiline
+          autoFocus
+        />
+        <Button title="Import" onPress={() => ingest(pasted)} disabled={!pasted.trim()} />
+      </KeyboardAvoidingView>
+    );
+  }
 
   const { title, detail } = describe(state);
   return (
@@ -46,7 +79,7 @@ export default function AddFromSms() {
   );
 }
 
-function describe(state: ScreenState): { title: string; detail?: string } {
+function describe(state: Exclude<ScreenState, { status: "paste" }>): { title: string; detail?: string } {
   switch (state.status) {
     case "working":
       return { title: "Reading message…" };
@@ -70,6 +103,8 @@ function describe(state: ScreenState): { title: string; detail?: string } {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, justifyContent: "center", gap: 12 },
+  paste: { flex: 1, padding: 16, gap: 16 },
   title: { fontSize: 28, fontWeight: "700", textAlign: "center" },
   detail: { fontSize: 16, textAlign: "center", lineHeight: 22, marginBottom: 24 },
+  input: { borderWidth: 1, borderRadius: 12, padding: 14, fontSize: 16, minHeight: 140, textAlignVertical: "top" },
 });
