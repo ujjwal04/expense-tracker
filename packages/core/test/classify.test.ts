@@ -15,7 +15,7 @@ describe("classify", () => {
     [sms.SUBSCRIPTION_AUTOPAY, "EXPENSE", true],
     [sms.CARD_BILL_PAYMENT, "TRANSFER", false],
     [sms.CARD_PAYMENT_RECEIVED, "TRANSFER", false],
-    [sms.ATM_WITHDRAWAL, "TRANSFER", false],
+    [sms.ATM_WITHDRAWAL, "EXPENSE", false],
     [sms.SIP_MANDATE, "INVESTMENT", true],
     [sms.SALARY, "INCOME", false],
     [sms.CARD_REFUND, "REFUND", false],

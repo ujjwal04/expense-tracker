@@ -29,9 +29,9 @@ const SELF_TRANSFER = /\bself\b|own account/i;
 const FIXED = /mandate|autopay|auto-?debit|\bnach\b|\becs\b|standing instruction|\bemi\b|subscription/i;
 
 /**
- * Decides whether money leaving an account is real spend. Card bill payments, self transfers,
- * wallet top-ups and ATM withdrawals only move money (TRANSFER), and investments aren't spend,
- * so the card swipes and cash entries are what get counted, never twice.
+ * Decides whether money leaving an account is real spend. Card bill payments, self transfers
+ * and wallet top-ups only move money (TRANSFER), and investments aren't spend, so the card
+ * swipes are what get counted, never twice. ATM withdrawals count as spend when the cash leaves the bank.
  */
 export function classify(input: ClassifyInput, options: ClassifyOptions = {}): Classification {
   const text = `${input.text} ${input.merchant ?? ""}`;
@@ -50,9 +50,7 @@ export function classify(input: ClassifyInput, options: ClassifyOptions = {}): C
   const fixed = input.channel === "AUTOPAY" || FIXED.test(text);
   if (INVESTMENT.test(text)) return { kind: "INVESTMENT", fixed };
   if (input.accountType !== "CREDIT_CARD" && CARD_BILL_PAYMENT.test(text)) return { kind: "TRANSFER", fixed: false };
-  if (input.channel === "ATM" || WALLET_TOPUP.test(text) || isSelfTransfer(text, otherAccounts)) {
-    return { kind: "TRANSFER", fixed: false };
-  }
+  if (WALLET_TOPUP.test(text) || isSelfTransfer(text, otherAccounts)) return { kind: "TRANSFER", fixed: false };
   return { kind: "EXPENSE", fixed };
 }
 
