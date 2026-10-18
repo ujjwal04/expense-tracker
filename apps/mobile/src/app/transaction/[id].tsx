@@ -66,7 +66,10 @@ export default function EditTransaction() {
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: original.merchant ?? KIND_LABELS[original.kind] }} />
-      <Text style={[styles.amount, { color: theme.text }]}>{formatInr(original.amountPaise)}</Text>
+      <Text style={[styles.amount, { color: original.direction === "DEBIT" ? theme.negative : theme.positive }]}>
+        {original.direction === "DEBIT" ? "−" : "+"}
+        {formatInr(original.amountPaise)}
+      </Text>
       <Text style={[styles.message, { color: theme.muted }]}>{dayLabel(original.date)}</Text>
 
       <Text style={[styles.label, { color: theme.muted }]}>Category</Text>

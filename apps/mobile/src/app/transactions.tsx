@@ -60,18 +60,9 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
   );
 }
 
-/** Spend in normal text, money coming back in green, and money that only moved in grey. */
-function amountStyle(t: Transaction, theme: Theme): { color: string; sign: string } {
-  switch (t.kind) {
-    case "EXPENSE":
-      return { color: theme.text, sign: "" };
-    case "INCOME":
-    case "REFUND":
-      return { color: theme.positive, sign: "+" };
-    case "TRANSFER":
-    case "INVESTMENT":
-      return { color: theme.muted, sign: "" };
-  }
+/** Money out in red with −, money in in green with +. The row's details say whether it counts as spending. */
+function amountStyle(t: Pick<Transaction, "direction">, theme: Theme): { color: string; sign: string } {
+  return t.direction === "DEBIT" ? { color: theme.negative, sign: "−" } : { color: theme.positive, sign: "+" };
 }
 
 const styles = StyleSheet.create({
