@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 import { AppState } from "react-native";
 import { DEFAULT_CASH_MODE, getCashMode } from "@/db/settings";
 import { listTransactions } from "@/db/transactions";
-import { importSmsInbox, type InboxImportResult } from "@/ingest/inbox";
+import { importSmsInbox } from "@/ingest/inbox";
 
 /**
  * Loads a month's transactions whenever the screen is focused or the app returns to the foreground,
@@ -14,14 +14,11 @@ import { importSmsInbox, type InboxImportResult } from "@/ingest/inbox";
 export function useMonthTransactions(month: string): {
   transactions: Transaction[];
   error: string | null;
-  /** The last background import that found something, for a short note on screen. */
-  lastImport: InboxImportResult | null;
   cashMode: CashMode;
 } {
   const db = useSQLiteContext();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [lastImport, setLastImport] = useState<InboxImportResult | null>(null);
   const [cashMode, setCashMode] = useState<CashMode>(DEFAULT_CASH_MODE);
 
   useFocusEffect(
@@ -29,10 +26,7 @@ export function useMonthTransactions(month: string): {
       let active = true;
       const load = () =>
         importSmsInbox(db)
-          .then((imported) => {
-            if (active && imported.saved + imported.duplicates > 0) setLastImport(imported);
-            return Promise.all([listTransactions(db, month), getCashMode(db)]);
-          })
+          .then(() => Promise.all([listTransactions(db, month), getCashMode(db)]))
           .then(([rows, mode]) => {
             if (!active) return;
             setTransactions(rows);
@@ -54,5 +48,5 @@ export function useMonthTransactions(month: string): {
     }, [db, month]),
   );
 
-  return { transactions, error, lastImport, cashMode };
+  return { transactions, error, cashMode };
 }
