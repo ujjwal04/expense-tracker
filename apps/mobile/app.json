@@ -27,7 +27,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      "./plugins/import-sms-intent"
     ],
     "experiments": {
       "typedRoutes": true
