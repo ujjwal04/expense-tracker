@@ -1,10 +1,15 @@
 import { parseSmsDate } from "../dates";
 import { parseAmountToPaise } from "../money";
+import type { Channel } from "../types";
 import type { SmsParser } from "./types";
 
 // "Your A/c XX1234 debited by Rs. 20.00 on 08/10/26; SHARMA BAKERS credited. RRN 600000000001. ..."
 const SAVINGS_UPI =
   /A\/c\s+[X*]*(\d{4})\s+(debited|credited)\s+by\s+(?:Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)\s+on\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s*;\s*(.+?)\s+(?:credited|debited)\.(?:\s*RRN\s+(\w+))?/i;
+
+// "Your A/c XXXXXXX1234 has been credited with Rs. 85,000.00 on 30-09-2026. Info: NEFT/ABCD12345678901/ACME TECH PL."
+const SAVINGS_INFO =
+  /A\/c\s+[X*]*(\d{4})\s+has been\s+(debited|credited)\s+with\s+(?:Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)\s+on\s+(\d{1,2}-\d{1,2}-\d{2,4})\.\s*Info:\s*([^\n]+?)\.?\s*(?:\n|New bal\b|Team\b|$)/i;
 
 // "INR 281.39 spent on your IDFC FIRST Bank Credit Card ending XX9876 at CAFE BLUE on 15 OCT 2026 at 08:47 PM ..."
 const CARD_PURCHASE =
@@ -59,20 +64,46 @@ export const idfcSavingsParser: SmsParser = {
   id: "idfc-savings",
   matches: isIdfc,
   parse({ body }) {
-    const match = SAVINGS_UPI.exec(body);
-    const amountPaise = match?.[3] ? parseAmountToPaise(match[3]) : null;
-    if (!match || amountPaise === null) return null;
-    const reference = match[6] ?? null;
-    return {
-      amountPaise,
-      direction: match[2]?.toLowerCase() === "debited" ? "DEBIT" : "CREDIT",
-      date: parseSmsDate(match[4] ?? ""),
-      merchant: match[5]?.trim() ?? null,
-      accountLast4: match[1] ?? null,
-      accountType: "SAVINGS",
-      // The RRN is the UPI reference number.
-      channel: reference ? "UPI" : "OTHER",
-      reference,
-    };
+    const upi = SAVINGS_UPI.exec(body);
+    const upiPaise = upi?.[3] ? parseAmountToPaise(upi[3]) : null;
+    if (upi && upiPaise !== null) {
+      const reference = upi[6] ?? null;
+      return {
+        amountPaise: upiPaise,
+        direction: upi[2]?.toLowerCase() === "debited" ? "DEBIT" : "CREDIT",
+        date: parseSmsDate(upi[4] ?? ""),
+        merchant: upi[5]?.trim() ?? null,
+        accountLast4: upi[1] ?? null,
+        accountType: "SAVINGS",
+        // The RRN is the UPI reference number.
+        channel: reference ? "UPI" : "OTHER",
+        reference,
+      };
+    }
+
+    const info = SAVINGS_INFO.exec(body);
+    const infoPaise = info?.[3] ? parseAmountToPaise(info[3]) : null;
+    if (info && infoPaise !== null) {
+      // "NEFT/ABCD12345678901/ACME TECH PL" -> channel / reference / counterparty
+      const [method = "", reference, ...name] = (info[5] ?? "").split("/").map((part) => part.trim());
+      const hasParts = reference !== undefined;
+      return {
+        amountPaise: infoPaise,
+        direction: info[2]?.toLowerCase() === "debited" ? "DEBIT" : "CREDIT",
+        date: parseSmsDate(info[4] ?? ""),
+        merchant: (hasParts ? name.join("/") : method) || null,
+        accountLast4: info[1] ?? null,
+        accountType: "SAVINGS",
+        channel: hasParts ? methodChannel(method) : "OTHER",
+        reference: hasParts && reference ? reference : null,
+      };
+    }
+    return null;
   },
 };
+
+function methodChannel(method: string): Channel {
+  if (/^upi$/i.test(method)) return "UPI";
+  if (/^(?:neft|imps|rtgs)$/i.test(method)) return "NETBANKING";
+  return "OTHER";
+}

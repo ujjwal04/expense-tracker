@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { classify, findMaskingIssues, maskSensitive, parseSms } from "../src";
-import { IDFC_CARD_BILL_PAID, IDFC_CARD_PURCHASE, IDFC_FIXTURES, IDFC_UPI_PAYMENT } from "./fixtures/idfc-sms";
+import { IDFC_CARD_BILL_PAID, IDFC_CARD_PURCHASE, IDFC_FIXTURES, IDFC_SALARY, IDFC_UPI_PAYMENT } from "./fixtures/idfc-sms";
 
 describe("IDFC FIRST Bank", () => {
   it.each(IDFC_FIXTURES)("parses $name", ({ body, expected }) => {
@@ -13,6 +13,7 @@ describe("IDFC FIRST Bank", () => {
     { fixture: IDFC_CARD_PURCHASE, kind: "EXPENSE" },
     // The swipes are the spend; paying the bill only moves money, so it must not count again.
     { fixture: IDFC_CARD_BILL_PAID, kind: "TRANSFER" },
+    { fixture: IDFC_SALARY, kind: "INCOME" },
   ])("classifies $fixture.name as $kind", ({ fixture, kind }) => {
     const parsed = parseSms({ body: fixture.body });
     expect(parsed && classify({ ...parsed, text: fixture.body }).kind).toBe(kind);
@@ -27,6 +28,12 @@ describe("IDFC FIRST Bank", () => {
   it("masks the available credit limit", () => {
     const masked = maskSensitive(IDFC_CARD_PURCHASE.body);
     expect(masked).toContain("Avbl Limit [MASKED]");
+    expect(findMaskingIssues(masked)).toEqual([]);
+  });
+
+  it("masks the new balance and NEFT reference", () => {
+    const masked = maskSensitive(IDFC_SALARY.body);
+    expect(masked).toContain("New bal [MASKED].");
     expect(findMaskingIssues(masked)).toEqual([]);
   });
 

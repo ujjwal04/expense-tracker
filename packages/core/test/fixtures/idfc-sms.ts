@@ -47,4 +47,19 @@ export const IDFC_CARD_BILL_PAID: SmsFixture = {
   },
 };
 
-export const IDFC_FIXTURES: readonly SmsFixture[] = [IDFC_UPI_PAYMENT, IDFC_CARD_PURCHASE, IDFC_CARD_BILL_PAID];
+export const IDFC_SALARY: SmsFixture = {
+  name: "IDFC salary credit by NEFT",
+  body: "Your A/c XXXXXXX1234 has been credited with Rs. 85,000.00 on 30-09-2026. Info: NEFT/ABCD12345678901/ACME TECH PL-PAYROLL TRANSIT AC.\nNew bal: Rs. 120,000.00. Team IDFC FIRST Bank",
+  expected: {
+    amountPaise: 8500000,
+    direction: "CREDIT",
+    date: "2026-09-30",
+    merchant: "ACME TECH PL-PAYROLL TRANSIT AC",
+    accountLast4: "1234",
+    accountType: "SAVINGS",
+    channel: "NETBANKING",
+    reference: "ABCD12345678901",
+  },
+};
+
+export const IDFC_FIXTURES: readonly SmsFixture[] = [IDFC_UPI_PAYMENT, IDFC_CARD_PURCHASE, IDFC_CARD_BILL_PAID, IDFC_SALARY];
