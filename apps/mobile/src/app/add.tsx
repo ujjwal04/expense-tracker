@@ -40,7 +40,8 @@ export default function AddFromSms() {
     <View style={styles.container}>
       <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
       {detail ? <Text style={[styles.detail, { color: theme.muted }]}>{detail}</Text> : null}
-      {state.status !== "working" ? <Button title="Done" onPress={() => router.replace("/")} /> : null}
+      {/* Back to the existing dashboard; replace() would stack a second one on top. */}
+      {state.status !== "working" ? <Button title="Done" onPress={() => router.dismissTo("/")} /> : null}
     </View>
   );
 }
