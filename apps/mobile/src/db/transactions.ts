@@ -88,6 +88,22 @@ export async function listTransactions(db: SQLiteDatabase, month: string): Promi
   return rows.map(fromRow);
 }
 
+export async function getTransaction(db: SQLiteDatabase, id: string): Promise<Transaction | null> {
+  const row = await db.getFirstAsync<TransactionRow>(`SELECT ${COLUMNS} FROM transactions WHERE id = ?`, [id]);
+  return row ? fromRow(row) : null;
+}
+
+export type TransactionEdit = Pick<Transaction, "category" | "kind" | "fixed">;
+
+export async function updateTransaction(db: SQLiteDatabase, id: string, edit: TransactionEdit): Promise<void> {
+  await db.runAsync("UPDATE transactions SET category = ?, kind = ?, fixed = ? WHERE id = ?", [
+    edit.category,
+    edit.kind,
+    edit.fixed ? 1 : 0,
+    id,
+  ]);
+}
+
 /** An already-stored copy of the same payment: same bank reference, or a dedup match nearby. */
 export async function findStoredDuplicate(
   db: SQLiteDatabase,

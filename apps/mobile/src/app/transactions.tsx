@@ -1,6 +1,6 @@
 import { accountKey, formatInr, type Transaction } from "@expense/core";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { accountLabel, currentMonth, dayLabel, KIND_LABELS, monthLabel } from "@/format";
 import { useMonthTransactions } from "@/hooks/useMonthTransactions";
 import { useTheme, type Theme } from "@/theme";
@@ -37,7 +37,12 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
   const details = [dayLabel(t.date), accountLabel(accountKey(t)), t.category, counted ? null : KIND_LABELS[t.kind]];
 
   return (
-    <View style={styles.row}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityHint="Edit category and type"
+      onPress={() => router.push({ pathname: "/transaction/[id]", params: { id: t.id } })}
+      style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
+    >
       <View style={styles.rowMain}>
         <Text style={[styles.merchant, { color: theme.text }]} numberOfLines={1}>
           {t.merchant ?? KIND_LABELS[t.kind]}
@@ -51,7 +56,7 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
         {sign}
         {formatInr(t.amountPaise)}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 

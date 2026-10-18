@@ -35,6 +35,14 @@ const MIGRATIONS: readonly string[] = [
     value TEXT NOT NULL
   );
   `,
+  `
+  -- Learned from the user's category corrections; checked before the built-in rules.
+  CREATE TABLE category_rules (
+    pattern TEXT PRIMARY KEY NOT NULL,
+    category TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  `,
 ];
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {
