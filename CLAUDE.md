@@ -70,4 +70,6 @@ API key stays server-side only · masking guard · rate limiting · caching (mer
 
 ## Pending from the user
 
-- Accounts: **IDFC FIRST Bank** (savings) and an **IDFC FIRST credit card** (his only card). IDFC parsers are first priority, and card bill payments from the savings account must be detected as `TRANSFER`. Still needed: masked sample SMS for both. Until then, build parsers for common formats and keep them easy to extend.
+- Accounts: **IDFC FIRST Bank** (savings) and **two IDFC FIRST credit cards** (different last4s). Parsers exist for the savings UPI debit, card purchase and card bill payment received (`TRANSFER`).
+- The savings account sends **no debit SMS** for card bill payments; only the card's "Thank you for payment" SMS arrives. When statement import is built, the matching savings debit line must be classified `TRANSFER` (and ideally linked to that card SMS), or the bill is counted as spend.
+- Still useful: a money-received SMS (salary/UPI credit) and an ATM withdrawal SMS, masked. Until then, build parsers for common formats and keep them easy to extend.
