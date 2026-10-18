@@ -1,3 +1,4 @@
+import { categorize, type CategoryRule } from "./categorize";
 import { classify, type ClassifyOptions } from "./classify";
 import { istDate } from "./dates";
 import { parseSms, type RawSms, type SmsParser } from "./parsers";
@@ -9,6 +10,8 @@ export interface SmsIngestOptions extends ClassifyOptions {
   /** Used as the date when the message doesn't contain one. */
   receivedAt: Date;
   parsers?: readonly SmsParser[];
+  /** The user's learned rules; built-in defaults apply after these. */
+  categoryRules?: readonly CategoryRule[];
 }
 
 export interface SmsIngestResult {
@@ -29,7 +32,7 @@ export function transactionFromSms(sms: RawSms, options: SmsIngestOptions): SmsI
       kind,
       date: parsed.date ?? istDate(options.receivedAt),
       merchant: parsed.merchant,
-      category: null,
+      category: categorize(parsed.merchant, options.categoryRules),
       accountType: parsed.accountType,
       accountLast4: parsed.accountLast4,
       channel: parsed.channel,

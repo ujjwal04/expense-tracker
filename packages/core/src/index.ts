@@ -7,3 +7,4 @@ export * from "./dedup";
 export * from "./summary";
 export * from "./masking";
 export * from "./ingest";
+export * from "./categorize";

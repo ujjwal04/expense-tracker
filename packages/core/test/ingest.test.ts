@@ -13,7 +13,7 @@ describe("transactionFromSms", () => {
         kind: "EXPENSE",
         date: "2026-10-08",
         merchant: "SHARMA BAKERS",
-        category: null,
+        category: "Food",
         accountType: "SAVINGS",
         accountLast4: "1234",
         channel: "UPI",
