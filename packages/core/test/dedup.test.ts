@@ -7,6 +7,7 @@ const fromSms: DedupCandidate = {
   date: "2026-10-14",
   accountLast4: "4321",
   merchant: "swiggy@icici",
+  source: "SMS",
 };
 const fromStatement: DedupCandidate = {
   amountPaise: 25000,
@@ -14,6 +15,7 @@ const fromStatement: DedupCandidate = {
   date: "2026-10-15",
   accountLast4: "4321",
   merchant: "UPI/628712345678/SWIGGY/Bundl Technologies",
+  source: "STATEMENT",
 };
 
 describe("isLikelyDuplicate", () => {
@@ -27,8 +29,20 @@ describe("isLikelyDuplicate", () => {
 
   it("never matches money going out with money coming in", () => {
     // ₹1 sent out of an account, then ₹1 received back into it the same day.
-    const sent: DedupCandidate = { amountPaise: 100, direction: "DEBIT", date: "2026-10-18", accountLast4: "4321", merchant: null };
-    expect(isLikelyDuplicate(sent, { ...sent, direction: "CREDIT" })).toBe(false);
+    const sent: DedupCandidate = {
+      amountPaise: 100,
+      direction: "DEBIT",
+      date: "2026-10-18",
+      accountLast4: "4321",
+      merchant: null,
+      source: "SMS",
+    };
+    expect(isLikelyDuplicate(sent, { ...sent, direction: "CREDIT", source: "STATEMENT" })).toBe(false);
+  });
+
+  it("keeps two separate SMS payments to the same shop on the same day", () => {
+    // Two ₹250 Swiggy orders on one day are two payments, not a duplicate.
+    expect(isLikelyDuplicate(fromSms, { ...fromSms })).toBe(false);
   });
 
   it("rejects dates outside the window", () => {
@@ -44,7 +58,7 @@ describe("isLikelyDuplicate", () => {
   });
 
   it("needs an exact date when a merchant is missing", () => {
-    expect(isLikelyDuplicate(fromSms, { ...fromSms, merchant: null })).toBe(true);
+    expect(isLikelyDuplicate(fromSms, { ...fromStatement, date: fromSms.date, merchant: null })).toBe(true);
     expect(isLikelyDuplicate(fromSms, { ...fromStatement, merchant: null })).toBe(false);
   });
 });

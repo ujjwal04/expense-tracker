@@ -12,36 +12,43 @@ const InboxEntrySchema = z.object({
   receivedAt: z.iso.datetime({ offset: true }),
 });
 
-let running: Promise<number> | null = null;
+export interface InboxImportResult {
+  saved: number;
+  duplicates: number;
+}
+
+let running: Promise<InboxImportResult> | null = null;
 
 /**
  * Imports every SMS waiting in the inbox. The file is renamed first, so messages arriving meanwhile
- * go to a fresh inbox instead of being lost. Returns how many new transactions were saved.
+ * go to a fresh inbox instead of being lost. Returns how many were saved and how many were skipped as already recorded.
  * Several screens call this on focus; overlapping calls share one run so no batch is read twice.
  */
-export function importSmsInbox(db: SQLiteDatabase): Promise<number> {
+export function importSmsInbox(db: SQLiteDatabase): Promise<InboxImportResult> {
   running ??= importPending(db).finally(() => {
     running = null;
   });
   return running;
 }
 
-async function importPending(db: SQLiteDatabase): Promise<number> {
+async function importPending(db: SQLiteDatabase): Promise<InboxImportResult> {
   const inbox = new File(Paths.document, INBOX_NAME);
-  if (inbox.exists) inbox.move(new File(Paths.document, `${INBOX_NAME}.${Date.now()}${PROCESSING_SUFFIX}`));
+  // move() is async: finish the rename before listing, or this run would miss the batch.
+  if (inbox.exists) await inbox.move(new File(Paths.document, `${INBOX_NAME}.${Date.now()}${PROCESSING_SUFFIX}`));
 
-  let saved = 0;
+  const result: InboxImportResult = { saved: 0, duplicates: 0 };
   // Includes batches left behind if the app was closed mid-import.
   for (const batch of pendingBatches()) {
     for (const line of (await batch.text()).split("\n")) {
       const entry = parseLine(line);
       if (!entry) continue;
       const outcome = await ingestSms(db, entry.body, new Date(entry.receivedAt));
-      if (outcome.status === "saved") saved++;
+      if (outcome.status === "saved") result.saved++;
+      if (outcome.status === "duplicate") result.duplicates++;
     }
     batch.delete();
   }
-  return saved;
+  return result;
 }
 
 function pendingBatches(): File[] {

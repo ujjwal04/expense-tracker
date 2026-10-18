@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AmountRow, Button, Section } from "@/components/ui";
 import { accountLabel, currentMonth, monthLabel } from "@/format";
 import { useMonthTransactions } from "@/hooks/useMonthTransactions";
+import type { InboxImportResult } from "@/ingest/inbox";
 import { useTheme } from "@/theme";
 
 const byAmount = (totals: Record<string, number>) => Object.entries(totals).sort(([, a], [, b]) => b - a);
@@ -12,7 +13,7 @@ const byAmount = (totals: Record<string, number>) => Object.entries(totals).sort
 export default function Dashboard() {
   const theme = useTheme();
   const [month, setMonth] = useState(currentMonth);
-  const { transactions, error } = useMonthTransactions(month);
+  const { transactions, error, lastImport } = useMonthTransactions(month);
   const summary = useMemo(() => summarizeMonth(transactions, month), [transactions, month]);
   const isCurrentMonth = month === currentMonth();
   const cashEntries = byAmount(summary.cashBreakdown);
@@ -35,6 +36,9 @@ export default function Dashboard() {
         spent{summary.refundsPaise > 0 ? ` after ${formatInr(summary.refundsPaise)} in refunds` : ""}
       </Text>
       {error ? <Text style={[styles.caption, { color: theme.negative }]}>Couldn't load: {error}</Text> : null}
+      {lastImport ? (
+        <Text style={[styles.caption, { color: theme.muted }]}>{importNote(lastImport)}</Text>
+      ) : null}
 
       <Section title="Fixed vs variable">
         <AmountRow label="Fixed" hint="EMIs, subscriptions, autopay" paise={summary.fixedPaise} />
@@ -122,3 +126,11 @@ const styles = StyleSheet.create({
   empty: { fontSize: 15, textAlign: "center", marginTop: 32, lineHeight: 21 },
   actions: { marginTop: 32, gap: 12 },
 });
+
+/** "Imported 2 bank SMS · 1 already recorded" */
+function importNote({ saved, duplicates }: InboxImportResult): string {
+  const parts = [];
+  if (saved > 0) parts.push(`Imported ${saved} bank SMS`);
+  if (duplicates > 0) parts.push(`${duplicates} already recorded`);
+  return parts.join(" · ");
+}

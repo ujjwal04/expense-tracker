@@ -22,7 +22,7 @@ export async function ingestSms(db: SQLiteDatabase, body: string, receivedAt = n
   );
   if (!result) return { status: "not-a-transaction" };
 
-  const existing = await findStoredDuplicate(db, result.transaction, result.reference);
+  const existing = await findStoredDuplicate(db, result.transaction, result.reference, body);
   if (existing) return { status: "duplicate", existing };
 
   const transaction = await insertTransaction(db, result.transaction, { reference: result.reference, rawText: body });

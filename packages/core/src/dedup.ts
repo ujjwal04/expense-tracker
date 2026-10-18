@@ -1,5 +1,5 @@
 import { daysBetween } from "./dates";
-import type { Direction } from "./types";
+import type { Direction, Source } from "./types";
 
 export interface DedupCandidate {
   amountPaise: number;
@@ -7,6 +7,7 @@ export interface DedupCandidate {
   date: string;
   accountLast4: string | null;
   merchant: string | null;
+  source: Source;
 }
 
 export interface DedupOptions {
@@ -17,9 +18,12 @@ export interface DedupOptions {
 /**
  * The same payment can arrive by SMS, statement and email with slightly different dates and
  * merchant text. Same amount and direction + nearby date + same account + similar merchant = one transaction.
+ * Only applies across sources: two SMS are two payments (e.g. two coffees at the same shop on the same day).
+ * Exact repeats within a source are caught by reference number or identical text instead.
  */
 export function isLikelyDuplicate(a: DedupCandidate, b: DedupCandidate, options: DedupOptions = {}): boolean {
   const { dateWindowDays = 2, minMerchantSimilarity = 0.5 } = options;
+  if (a.source === b.source) return false;
   // Money going out and money coming in are never the same transaction, even for equal amounts.
   if (a.amountPaise !== b.amountPaise || a.direction !== b.direction) return false;
   if (a.accountLast4 && b.accountLast4 && a.accountLast4 !== b.accountLast4) return false;

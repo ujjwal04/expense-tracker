@@ -104,18 +104,21 @@ export async function updateTransaction(db: SQLiteDatabase, id: string, edit: Tr
   ]);
 }
 
-/** An already-stored copy of the same payment: same bank reference, or a dedup match nearby. */
+/**
+ * An already-stored copy of the same payment: the same bank reference, the exact same message text
+ * (e.g. an automation that fired twice), or a match from another source (statement vs SMS) nearby.
+ */
 export async function findStoredDuplicate(
   db: SQLiteDatabase,
   t: NewTransaction,
   reference: string | null,
+  rawText: string | null = null,
 ): Promise<Transaction | undefined> {
-  if (reference) {
-    const row = await db.getFirstAsync<TransactionRow>(`SELECT ${COLUMNS} FROM transactions WHERE reference = ?`, [
-      reference,
-    ]);
-    if (row) return fromRow(row);
-  }
+  const exact = await db.getFirstAsync<TransactionRow>(
+    `SELECT ${COLUMNS} FROM transactions WHERE (reference IS NOT NULL AND reference = ?) OR (raw_text IS NOT NULL AND raw_text = ?)`,
+    [reference, rawText],
+  );
+  if (exact) return fromRow(exact);
   const nearby = await db.getAllAsync<TransactionRow>(
     `SELECT ${COLUMNS} FROM transactions
      WHERE amount_paise = ? AND date BETWEEN date(?, '-2 days') AND date(?, '+2 days')`,

@@ -4,23 +4,32 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
 import { AppState } from "react-native";
 import { listTransactions } from "@/db/transactions";
-import { importSmsInbox } from "@/ingest/inbox";
+import { importSmsInbox, type InboxImportResult } from "@/ingest/inbox";
 
 /**
  * Loads a month's transactions whenever the screen is focused or the app returns to the foreground,
  * first importing any bank SMS the Shortcuts action saved while the app was in the background.
  */
-export function useMonthTransactions(month: string): { transactions: Transaction[]; error: string | null } {
+export function useMonthTransactions(month: string): {
+  transactions: Transaction[];
+  error: string | null;
+  /** The last background import that found something, for a short note on screen. */
+  lastImport: InboxImportResult | null;
+} {
   const db = useSQLiteContext();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [lastImport, setLastImport] = useState<InboxImportResult | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       const load = () =>
         importSmsInbox(db)
-          .then(() => listTransactions(db, month))
+          .then((imported) => {
+            if (active && imported.saved + imported.duplicates > 0) setLastImport(imported);
+            return listTransactions(db, month);
+          })
           .then((rows) => {
             if (!active) return;
             setTransactions(rows);
@@ -41,5 +50,5 @@ export function useMonthTransactions(month: string): { transactions: Transaction
     }, [db, month]),
   );
 
-  return { transactions, error };
+  return { transactions, error, lastImport };
 }
