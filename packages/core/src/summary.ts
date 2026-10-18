@@ -3,6 +3,17 @@ import type { Transaction } from "./types";
 
 export const UNCATEGORIZED = "Uncategorized";
 
+/**
+ * How cash is counted, so it is never counted twice:
+ * - WITHDRAWALS: an ATM withdrawal is the spend; manual cash entries only show where it went.
+ * - ENTRIES: each manual cash entry is the spend; an ATM withdrawal just moves money to cash.
+ */
+export type CashMode = "WITHDRAWALS" | "ENTRIES";
+
+export interface SummaryOptions {
+  cashMode?: CashMode;
+}
+
 export interface MonthlySummary {
   month: string;
   /** What the user actually spent: expenses (incl. cash) minus refunds. */
@@ -12,6 +23,8 @@ export interface MonthlySummary {
   refundsPaise: number;
   byCategory: Record<string, number>;
   byAccount: Record<string, number>;
+  /** Manual cash entries by category, already included in the withdrawals (WITHDRAWALS mode only). */
+  cashBreakdown: Record<string, number>;
   /** Money that moved but isn't spend, shown for transparency. */
   excluded: { incomePaise: number; transfersPaise: number; investmentsPaise: number };
 }
@@ -21,7 +34,12 @@ export interface MonthlySummary {
  * Classification has already marked bill payments, transfers and investments, so this is
  * the sum of EXPENSE minus REFUND.
  */
-export function summarizeMonth(transactions: readonly Transaction[], month: string): MonthlySummary {
+export function summarizeMonth(
+  transactions: readonly Transaction[],
+  month: string,
+  options: SummaryOptions = {},
+): MonthlySummary {
+  const { cashMode = "WITHDRAWALS" } = options;
   const summary: MonthlySummary = {
     month,
     spendPaise: 0,
@@ -30,6 +48,7 @@ export function summarizeMonth(transactions: readonly Transaction[], month: stri
     refundsPaise: 0,
     byCategory: {},
     byAccount: {},
+    cashBreakdown: {},
     excluded: { incomePaise: 0, transfersPaise: 0, investmentsPaise: 0 },
   };
 
@@ -45,7 +64,13 @@ export function summarizeMonth(transactions: readonly Transaction[], month: stri
     if (monthOf(t.date) !== month) continue;
     switch (t.kind) {
       case "EXPENSE":
-        addSpend(t, t.amountPaise);
+        if (cashMode === "WITHDRAWALS" && t.accountType === "CASH") {
+          bump(summary.cashBreakdown, t.category ?? UNCATEGORIZED, t.amountPaise);
+        } else if (cashMode === "ENTRIES" && t.channel === "ATM") {
+          summary.excluded.transfersPaise += t.amountPaise;
+        } else {
+          addSpend(t, t.amountPaise);
+        }
         break;
       case "REFUND":
         summary.refundsPaise += t.amountPaise;

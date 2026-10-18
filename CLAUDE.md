@@ -32,7 +32,7 @@ Owner: Ujjwal Verma (backend engineer: Java/Spring and React/Node). He's new to 
   - Transfers between own accounts = `TRANSFER`.
   - SIP / mutual funds / investments = `INVESTMENT`, not an expense.
   - Wallet top-ups = `TRANSFER`.
-  - ATM withdrawals = `EXPENSE` (owner's decision: cash counts as spent when it's withdrawn).
+  - Cash is a user setting (`CashMode`, applied in the monthly summary, so switching recomputes past months). Default `WITHDRAWALS`: ATM withdrawals are spend, and manual cash entries only break it down. `ENTRIES`: cash entries are spend, and ATM withdrawals count as transfers.
   - Refunds/reversals offset the original expense.
 - **Dedup:** the same transaction can arrive from SMS + statement + email. Match on amount + date window + account last4 + merchant similarity, and keep one.
 - Mandates/autopay are tagged `FIXED` so fixed and variable spend show separately.
