@@ -48,6 +48,12 @@ export function monthOf(date: string): string {
   return date.slice(0, 7);
 }
 
+/** shiftMonth("2026-01", -1) -> "2025-12" */
+export function shiftMonth(month: string, delta: number): string {
+  const [year = 0, monthNumber = 1] = month.split("-").map(Number);
+  return new Date(Date.UTC(year, monthNumber - 1 + delta, 1)).toISOString().slice(0, 7);
+}
+
 export function daysBetween(a: string, b: string): number {
   return Math.abs(Date.parse(a) - Date.parse(b)) / DAY_MS;
 }

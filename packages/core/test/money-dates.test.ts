@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findDateInText, formatInr, istDate, parseAmountToPaise, parseSmsDate } from "../src";
+import { findDateInText, formatInr, istDate, parseAmountToPaise, parseSmsDate, shiftMonth } from "../src";
 
 describe("parseAmountToPaise", () => {
   it.each([
@@ -40,6 +40,12 @@ describe("parseSmsDate", () => {
 
 it("finds the first valid date in a message", () => {
   expect(findDateInText("Rs 10 paid on 31-02-26, settled on 01-03-26")).toBe("2026-03-01");
+});
+
+it("moves between months across year boundaries", () => {
+  expect(shiftMonth("2026-01", -1)).toBe("2025-12");
+  expect(shiftMonth("2026-12", 1)).toBe("2027-01");
+  expect(shiftMonth("2026-10", 0)).toBe("2026-10");
 });
 
 it("uses the Indian calendar date, not UTC", () => {

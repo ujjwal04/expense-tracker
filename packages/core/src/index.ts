@@ -6,3 +6,4 @@ export * from "./classify";
 export * from "./dedup";
 export * from "./summary";
 export * from "./masking";
+export * from "./ingest";
