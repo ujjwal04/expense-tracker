@@ -17,4 +17,19 @@ export const IDFC_UPI_PAYMENT: SmsFixture = {
   },
 };
 
-export const IDFC_FIXTURES: readonly SmsFixture[] = [IDFC_UPI_PAYMENT];
+export const IDFC_CARD_PURCHASE: SmsFixture = {
+  name: "IDFC credit card purchase",
+  body: "Delicious Purchase! INR 281.39 spent on your IDFC FIRST Bank Credit Card ending XX9876 at CAFE BLUE on 15 OCT 2026 at 08:47 PM Avbl Limit: INR 50000.00 If not done by you, call 180010888 for dispute or to block your card SMS CCBLOCK 9876 to 5676732",
+  expected: {
+    amountPaise: 28139,
+    direction: "DEBIT",
+    date: "2026-10-15",
+    merchant: "CAFE BLUE",
+    accountLast4: "9876",
+    accountType: "CREDIT_CARD",
+    channel: "CARD",
+    reference: null,
+  },
+};
+
+export const IDFC_FIXTURES: readonly SmsFixture[] = [IDFC_UPI_PAYMENT, IDFC_CARD_PURCHASE];

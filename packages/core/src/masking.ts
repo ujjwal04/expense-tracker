@@ -10,7 +10,7 @@ export type MaskingIssue = "LONG_NUMBER" | "EMAIL" | "BALANCE";
 
 const EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g;
 const BALANCE =
-  /\b((?:avl|avail(?:able)?)\.?\s*(?:bal(?:ance)?|lmt|limit)|bal(?:ance)?|credit\s*limit)\b\.?\s*(?:is\s*)?[:-]?\s*(?:(?:rs\.?|inr)\s*|₹\s*)?[\d,]+(?:\.\d{1,2})?/gi;
+  /\b((?:avl|avbl|avail(?:able)?)\.?\s*(?:bal(?:ance)?|lmt|limit)|bal(?:ance)?|credit\s*limit)\b\.?\s*(?:is\s*)?[:-]?\s*(?:(?:rs\.?|inr)\s*|₹\s*)?[\d,]+(?:\.\d{1,2})?/gi;
 /** 9+ digits, possibly spaced or dashed: account, card, phone and reference numbers. */
 const LONG_NUMBER = /\d(?:[ -]?\d){8,}/g;
 const GREETING = /\b(dear|hi|hello)\s+[A-Za-z]+/gi;

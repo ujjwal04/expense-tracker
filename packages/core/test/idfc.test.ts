@@ -1,20 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { classify, findMaskingIssues, maskSensitive, parseSms } from "../src";
-import { IDFC_FIXTURES, IDFC_UPI_PAYMENT } from "./fixtures/idfc-sms";
+import { IDFC_CARD_PURCHASE, IDFC_FIXTURES, IDFC_UPI_PAYMENT } from "./fixtures/idfc-sms";
 
 describe("IDFC FIRST Bank", () => {
   it.each(IDFC_FIXTURES)("parses $name", ({ body, expected }) => {
-    expect(parseSms({ body })).toEqual({ ...expected, parserId: "idfc-savings" });
+    const parserId = expected.accountType === "CREDIT_CARD" ? "idfc-credit-card" : "idfc-savings";
+    expect(parseSms({ body })).toEqual({ ...expected, parserId });
   });
 
-  it("classifies a UPI payment as an expense", () => {
-    const parsed = parseSms({ body: IDFC_UPI_PAYMENT.body });
-    expect(parsed && classify({ ...parsed, text: IDFC_UPI_PAYMENT.body }).kind).toBe("EXPENSE");
+  it.each(IDFC_FIXTURES)("classifies $name as an expense", ({ body }) => {
+    const parsed = parseSms({ body });
+    expect(parsed && classify({ ...parsed, text: body }).kind).toBe("EXPENSE");
   });
 
   it("masks the RRN and balance before anything leaves the device", () => {
     const masked = maskSensitive(IDFC_UPI_PAYMENT.body);
     expect(masked).toContain("RRN XX0001. Available balance [MASKED].");
+    expect(findMaskingIssues(masked)).toEqual([]);
+  });
+
+  it("masks the available credit limit", () => {
+    const masked = maskSensitive(IDFC_CARD_PURCHASE.body);
+    expect(masked).toContain("Avbl Limit [MASKED]");
     expect(findMaskingIssues(masked)).toEqual([]);
   });
 
