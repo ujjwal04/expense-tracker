@@ -31,6 +31,7 @@ export default function RootLayout() {
         <Stack.Screen name="cash" options={{ title: "Cash expense", presentation: "modal" }} />
         <Stack.Screen name="add" options={{ title: "Bank SMS", presentation: "modal" }} />
         <Stack.Screen name="transaction/[id]" options={{ title: "Edit", presentation: "modal" }} />
+        <Stack.Screen name="settings" options={{ title: "Settings" }} />
       </Stack>
     </SQLiteProvider>
   );

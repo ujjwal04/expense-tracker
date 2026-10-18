@@ -62,4 +62,43 @@ export const IDFC_SALARY: SmsFixture = {
   },
 };
 
-export const IDFC_FIXTURES: readonly SmsFixture[] = [IDFC_UPI_PAYMENT, IDFC_CARD_PURCHASE, IDFC_CARD_BILL_PAID, IDFC_SALARY];
+/** Sent by UPI to the account holder's own account at another bank; the receiver is their own name. */
+export const IDFC_UPI_TO_SELF: SmsFixture = {
+  name: "IDFC UPI transfer to own account",
+  body: "Your A/c XX1234 debited by Rs. 1.00 on 18/10/26; ASHA RAO credited. RRN 600000000004. Available balance Rs. 50,000.00. Team IDFC FIRST Bank",
+  expected: {
+    amountPaise: 100,
+    direction: "DEBIT",
+    date: "2026-10-18",
+    merchant: "ASHA RAO",
+    accountLast4: "1234",
+    accountType: "SAVINGS",
+    channel: "UPI",
+    reference: "600000000004",
+  },
+};
+
+/** This format doesn't say who sent the money. */
+export const IDFC_CREDIT_NO_SENDER: SmsFixture = {
+  name: "IDFC credit without sender",
+  body: "Your A/C XXXXX461234 is credited with INR 1.00 on 18/10/26 19:49. Your new balance is INR 50,001.00. Team IDFC FIRST Bank",
+  expected: {
+    amountPaise: 100,
+    direction: "CREDIT",
+    date: "2026-10-18",
+    merchant: null,
+    accountLast4: "1234",
+    accountType: "SAVINGS",
+    channel: "OTHER",
+    reference: null,
+  },
+};
+
+export const IDFC_FIXTURES: readonly SmsFixture[] = [
+  IDFC_UPI_PAYMENT,
+  IDFC_CARD_PURCHASE,
+  IDFC_CARD_BILL_PAID,
+  IDFC_SALARY,
+  IDFC_UPI_TO_SELF,
+  IDFC_CREDIT_NO_SENDER,
+];

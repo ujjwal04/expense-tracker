@@ -14,6 +14,7 @@ export const CATEGORIES = [
   "Education",
   "Personal Care",
   "People",
+  "Self transfer",
   "Cash",
   "Other",
 ] as const;

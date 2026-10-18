@@ -11,6 +11,10 @@ const SAVINGS_UPI =
 const SAVINGS_INFO =
   /A\/c\s+[X*]*(\d{4})\s+has been\s+(debited|credited)\s+with\s+(?:Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)\s+on\s+(\d{1,2}-\d{1,2}-\d{2,4})\.\s*Info:\s*([^\n]+?)\.?\s*(?:\n|New bal\b|Team\b|$)/i;
 
+// "Your A/C XXXXX461234 is credited with INR 1.00 on 18/10/26 19:49. Your new balance is ..." (no counterparty)
+const SAVINGS_PLAIN =
+  /A\/C\s+[X*]*\d*?(\d{4})\s+is\s+(debited|credited)\s+with\s+(?:INR|Rs\.?)\s*([\d,]+(?:\.\d{1,2})?)\s+on\s+(\d{1,2}\/\d{1,2}\/\d{2,4})/i;
+
 // "INR 281.39 spent on your IDFC FIRST Bank Credit Card ending XX9876 at CAFE BLUE on 15 OCT 2026 at 08:47 PM ..."
 const CARD_PURCHASE =
   /(?:INR|Rs\.?)\s*([\d,]+(?:\.\d{1,2})?)\s+spent on your IDFC FIRST Bank Credit Card ending\s+[X*]*(\d{4})\s+at\s+(.+?)\s+on\s+(\d{1,2}\s+[A-Za-z]{3}\s+\d{4})/i;
@@ -96,6 +100,21 @@ export const idfcSavingsParser: SmsParser = {
         accountType: "SAVINGS",
         channel: hasParts ? methodChannel(method) : "OTHER",
         reference: hasParts && reference ? reference : null,
+      };
+    }
+
+    const plain = SAVINGS_PLAIN.exec(body);
+    const plainPaise = plain?.[3] ? parseAmountToPaise(plain[3]) : null;
+    if (plain && plainPaise !== null) {
+      return {
+        amountPaise: plainPaise,
+        direction: plain[2]?.toLowerCase() === "debited" ? "DEBIT" : "CREDIT",
+        date: parseSmsDate(plain[4] ?? ""),
+        merchant: null,
+        accountLast4: plain[1] ?? null,
+        accountType: "SAVINGS",
+        channel: "OTHER",
+        reference: null,
       };
     }
     return null;

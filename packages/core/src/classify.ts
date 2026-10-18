@@ -1,3 +1,4 @@
+import { merchantSimilarity } from "./dedup";
 import type { AccountType, Channel, Direction, TransactionKind } from "./types";
 
 export interface ClassifyInput {
@@ -13,6 +14,14 @@ export interface ClassifyInput {
 export interface ClassifyOptions {
   /** Last 4 digits of all the user's own accounts and cards, for self-transfer detection. */
   ownAccountLast4?: readonly string[];
+  /** The user's name as banks write it; money sent to or received from it is a self transfer. */
+  ownerNames?: readonly string[];
+}
+
+/** Banks spell names inconsistently ("UJJAWAL" vs "Ujjwal"), so this is a close match, not an exact one. */
+export function isOwnerName(counterparty: string | null, ownerNames: readonly string[] = []): boolean {
+  if (!counterparty) return false;
+  return ownerNames.some((name) => name.trim() && merchantSimilarity(counterparty, name) >= 0.8);
 }
 
 export interface Classification {
@@ -36,6 +45,7 @@ const FIXED = /mandate|autopay|auto-?debit|\bnach\b|\becs\b|standing instruction
 export function classify(input: ClassifyInput, options: ClassifyOptions = {}): Classification {
   const text = `${input.text} ${input.merchant ?? ""}`;
   const otherAccounts = (options.ownAccountLast4 ?? []).filter((last4) => last4 !== input.accountLast4);
+  const toSelf = isOwnerName(input.merchant, options.ownerNames);
 
   if (input.direction === "CREDIT") {
     if (input.accountType === "CREDIT_CARD") {
@@ -43,14 +53,14 @@ export function classify(input: ClassifyInput, options: ClassifyOptions = {}): C
       return { kind: CARD_PAYMENT_RECEIVED.test(text) ? "TRANSFER" : "REFUND", fixed: false };
     }
     if (REFUND.test(text)) return { kind: "REFUND", fixed: false };
-    if (isSelfTransfer(text, otherAccounts)) return { kind: "TRANSFER", fixed: false };
+    if (toSelf || isSelfTransfer(text, otherAccounts)) return { kind: "TRANSFER", fixed: false };
     return { kind: "INCOME", fixed: false };
   }
 
   const fixed = input.channel === "AUTOPAY" || FIXED.test(text);
   if (INVESTMENT.test(text)) return { kind: "INVESTMENT", fixed };
   if (input.accountType !== "CREDIT_CARD" && CARD_BILL_PAYMENT.test(text)) return { kind: "TRANSFER", fixed: false };
-  if (WALLET_TOPUP.test(text) || isSelfTransfer(text, otherAccounts)) return { kind: "TRANSFER", fixed: false };
+  if (toSelf || WALLET_TOPUP.test(text) || isSelfTransfer(text, otherAccounts)) return { kind: "TRANSFER", fixed: false };
   return { kind: "EXPENSE", fixed };
 }
 

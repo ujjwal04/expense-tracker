@@ -1,6 +1,7 @@
 import { transactionFromSms, type Transaction } from "@expense/core";
 import type { SQLiteDatabase } from "expo-sqlite";
 import { listCategoryRules } from "@/db/categoryRules";
+import { getOwnerNames } from "@/db/settings";
 import { findStoredDuplicate, insertTransaction, listOwnAccountLast4 } from "@/db/transactions";
 
 export type SmsIngestOutcome =
@@ -12,7 +13,12 @@ export type SmsIngestOutcome =
 export async function ingestSms(db: SQLiteDatabase, body: string, receivedAt = new Date()): Promise<SmsIngestOutcome> {
   const result = transactionFromSms(
     { body },
-    { receivedAt, ownAccountLast4: await listOwnAccountLast4(db), categoryRules: await listCategoryRules(db) },
+    {
+      receivedAt,
+      ownAccountLast4: await listOwnAccountLast4(db),
+      ownerNames: await getOwnerNames(db),
+      categoryRules: await listCategoryRules(db),
+    },
   );
   if (!result) return { status: "not-a-transaction" };
 
